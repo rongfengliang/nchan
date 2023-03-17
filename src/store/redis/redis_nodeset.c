@@ -2603,6 +2603,12 @@ static void node_connector_callback(redisAsyncContext *ac, void *rep, void *priv
           return node_connector_fail(node, "failed parsing slaves from INFO");
         }
       }
+      else if(nchan_cstr_match_line(reply->str, "role:active-replica")) {
+          node_set_role(node, REDIS_NODE_ROLE_MASTER);
+          if(!node->cluster.enabled && !node_discover_slaves_from_info_reply(node, reply)) {
+              return node_connector_fail(node, "failed parsing slaves from INFO");
+          }
+      }
       else if(nchan_cstr_match_line(reply->str, "role:slave")) {
         redis_connect_params_t   *rcp;
         node_set_role(node, REDIS_NODE_ROLE_SLAVE);
