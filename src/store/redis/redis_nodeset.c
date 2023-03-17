@@ -2586,9 +2586,9 @@ static void node_connector_callback(redisAsyncContext *ac, void *rep, void *priv
       if(nchan_cstr_match_line(reply->str, "loading:1")) {
         return node_connector_fail(node, "is busy loading data...");
       }
-      if(nchan_cstr_match_line(reply->str, "role:active-replica")) {
-          return;
-      }
+//       if(nchan_cstr_match_line(reply->str, "role:active-replica")) {
+//           return;
+//       }
       if(nchan_cstr_match_line(reply->str, "cluster_enabled:1")) {
         node->cluster.enabled = 1;
       }
