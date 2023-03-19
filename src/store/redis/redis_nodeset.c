@@ -1589,6 +1589,28 @@ static void node_discover_slave(redis_node_t *master, redis_connect_params_t *rc
     }
 }
 
+static void node_discover_slave_v2(redis_node_t *master, redis_connect_params_t *rcp) {
+    redis_node_t *slave;
+    if ((slave = nodeset_node_find_by_connect_params(master->nodeset, rcp)) != NULL) {
+        //we know about it already
+        if (slave->state > REDIS_NODE_GET_INFO) {
+            node_set_role(slave, REDIS_NODE_ACTIVE_REPLICA);
+            node_connect(slave);
+        }
+        //assert(slave->peers.master == master);
+    } else {
+        slave = nodeset_node_create_with_connect_params(master->nodeset, rcp);
+        slave->discovered = 1;
+        node_set_role(slave, REDIS_NODE_ROLE_SLAVE);
+        node_log_notice(master, "Discovering own slave %s", rcp_cstr(rcp));
+    }
+    node_set_master_node(slave, master); //this is idempotent
+    node_add_slave_node(master, slave);  //so is this
+    //try to connect
+    if (slave->state <= REDIS_NODE_DISCONNECTED) {
+        node_connect(slave);
+    }
+}
 static void node_discover_master(redis_node_t *slave, redis_connect_params_t *rcp) {
     redis_node_t *master;
     if ((master = nodeset_node_find_by_connect_params(slave->nodeset, rcp)) != NULL) {
@@ -2232,6 +2254,24 @@ static int node_discover_slaves_from_info_reply(redis_node_t *node, redisReply *
                                &matched->str);
         } else {
             node_discover_slave(node, &rcp[i]);
+        }
+    }
+    return 1;
+}
+
+static int node_discover_slaves_from_info_reply_v2(redis_node_t *node, redisReply *reply) {
+    redis_connect_params_t *rcp;
+    size_t i, n;
+    if (!(rcp = parse_info_slaves(node, reply->str, &n))) {
+        return 0;
+    }
+    for (i = 0; i < n; i++) {
+        nchan_redis_ip_range_t *matched = node_ip_blacklisted(node->nodeset, &rcp[i]);
+        if (matched) {
+            nodeset_log_notice(node->nodeset, "Skipping slave node %V blacklisted by %V", &rcp->hostname,
+                               &matched->str);
+        } else {
+            node_discover_slave_v2(node, &rcp[i]);
         }
     }
     return 1;
