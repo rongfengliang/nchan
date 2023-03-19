@@ -2697,7 +2697,7 @@ static void node_connector_callback(redisAsyncContext *ac, void *rep, void *priv
                 }
             } else if (nchan_cstr_match_line(reply->str, "role:active-replica")) {
                 node_set_role(node, REDIS_NODE_ACTIVE_REPLICA);
-                if (!node->cluster.enabled && !node_discover_slaves_from_info_reply(node, reply)) {
+                if (!node->cluster.enabled && !node_discover_slaves_from_info_reply_v2(node, reply)) {
                     return node_connector_fail(node, "failed parsing slaves from INFO");
                 }
             } else if (nchan_cstr_match_line(reply->str, "role:slave")) {
