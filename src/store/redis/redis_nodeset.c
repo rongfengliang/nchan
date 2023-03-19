@@ -1908,6 +1908,7 @@ void node_set_role(redis_node_t *node, redis_node_role_t role) {
 //                node_remove_peer(node->peers.master, node);
 //                node->peers.master = NULL;
 //            }
+            node->peers.master = node;
             break;
         case REDIS_NODE_ROLE_SLAVE:
             //do nothing
